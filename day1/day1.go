@@ -1,25 +1,42 @@
-package main
+package day1
 
 import (
 	"bufio"
-	"fmt"
 	"io"
-	"os"
 
 	"go.arsenm.dev/pcre"
 )
 
-func main() {
-	input, err := os.Open("in/day1.txt")
-	if err != nil {
-		fmt.Println("err: ", err)
-		os.Exit(1)
+type Solution struct{}
+
+func (s Solution) Part1(input io.Reader) int {
+	scanner := bufio.NewScanner(input)
+
+	total := 0
+	for scanner.Scan() {
+		line := scanner.Text()
+		total += (ldigit(line) * 10) + rdigit(line)
 	}
 
-	fmt.Println("part1: ", part1(input))
+	return total
+}
 
-	_, _ = input.Seek(0, 0)
-	fmt.Println("part2: ", part2(input))
+func (s Solution) Part2(input io.Reader) int {
+	scanner := bufio.NewScanner(input)
+
+	total := 0
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		digits := convertCaptureGroupsToDigits(PartTwoRegex.FindAllStringSubmatchIndex(line, -1))
+
+		ldigit := digits[0]
+		rdigit := digits[len(digits)-1]
+
+		total += (ldigit * 10) + rdigit
+	}
+
+	return total
 }
 
 func ldigit(in string) int {
@@ -46,18 +63,6 @@ func rdigit(in string) int {
 	panic("expected digit in input value: " + in)
 }
 
-func part1(in io.Reader) int {
-	scanner := bufio.NewScanner(in)
-
-	total := 0
-	for scanner.Scan() {
-		line := scanner.Text()
-		total += (ldigit(line) * 10) + rdigit(line)
-	}
-
-	return total
-}
-
 // https://xkcd.com/208/
 var PartTwoRegex = pcre.MustCompile(
 	"(0)" +
@@ -70,24 +75,6 @@ var PartTwoRegex = pcre.MustCompile(
 		"|(7|s(?=even))" +
 		"|(8|e(?=ight))" +
 		"|(9|n(?=ine))")
-
-func part2(in io.Reader) int {
-	scanner := bufio.NewScanner(in)
-
-	total := 0
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		digits := convertCaptureGroupsToDigits(PartTwoRegex.FindAllStringSubmatchIndex(line, -1))
-
-		ldigit := digits[0]
-		rdigit := digits[len(digits)-1]
-
-		total += (ldigit * 10) + rdigit
-	}
-
-	return total
-}
 
 func convertCaptureGroupsToDigits(indexSets [][]int) []int {
 	var digits []int

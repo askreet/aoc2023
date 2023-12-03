@@ -1,27 +1,14 @@
-package main
+package day3
 
 import (
-	"fmt"
 	"io"
-	"os"
 	"slices"
 )
 
-func main() {
-	input, err := os.Open("in/day3.txt")
-	if err != nil {
-		fmt.Println("err: ", err)
-		os.Exit(1)
-	}
+type Solution struct{}
 
-	fmt.Println("part1: ", part1(input))
-
-	_, _ = input.Seek(0, 0)
-	fmt.Println("part2: ", part2(input))
-}
-
-func part1(in io.Reader) int {
-	s := NewSchematic(in)
+func (_ Solution) Part1(input io.Reader) int {
+	s := NewSchematic(input)
 	s.ScanNumbers()
 
 	total := 0
@@ -42,8 +29,8 @@ func part1(in io.Reader) int {
 	return total
 }
 
-func part2(in io.Reader) int {
-	s := NewSchematic(in)
+func (_ Solution) Part2(input io.Reader) int {
+	s := NewSchematic(input)
 	s.ScanNumbers()
 
 	sum := 0

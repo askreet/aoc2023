@@ -1,26 +1,13 @@
-package main
+package day2
 
 import (
-	"fmt"
 	"io"
-	"os"
 )
 
-func main() {
-	input, err := os.Open("in/day2.txt")
-	if err != nil {
-		fmt.Println("err: ", err)
-		os.Exit(1)
-	}
+type Solution struct{}
 
-	fmt.Println("part1: ", part1(input))
-
-	_, _ = input.Seek(0, 0)
-	fmt.Println("part2: ", part2(input))
-}
-
-func part1(in io.Reader) int {
-	games, err := GamesFrom(in)
+func (s Solution) Part1(input io.Reader) int {
+	games, err := GamesFrom(input)
 	if err != nil {
 		panic(err)
 	}
@@ -47,8 +34,8 @@ func part1(in io.Reader) int {
 	return possibleGameIDSum
 }
 
-func part2(in io.Reader) int {
-	games, err := GamesFrom(in)
+func (s Solution) Part2(input io.Reader) int {
+	games, err := GamesFrom(input)
 	if err != nil {
 		panic(err)
 	}
