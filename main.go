@@ -9,6 +9,7 @@ import (
 	"github.com/askreet/aoc2023/day1"
 	"github.com/askreet/aoc2023/day10"
 	"github.com/askreet/aoc2023/day11"
+	"github.com/askreet/aoc2023/day12"
 	"github.com/askreet/aoc2023/day2"
 	"github.com/askreet/aoc2023/day3"
 	"github.com/askreet/aoc2023/day4"
@@ -31,6 +32,7 @@ var Days = []advent.Interface{
 	day9.Solution{},
 	day10.Solution{},
 	day11.Solution{},
+	day12.Solution{},
 }
 
 func main() {
@@ -46,8 +48,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("part1: ", Days[day-1].Part1(input))
+	var part = ""
+	if len(os.Args) >= 3 {
+		part = os.Args[2]
+	}
+
+	if part == "" || part == "1" {
+		fmt.Println("part1: ", Days[day-1].Part1(input))
+	}
 
 	_, _ = input.Seek(0, 0)
-	fmt.Println("part2: ", Days[day-1].Part2(input))
+	if part == "" || part == "2" {
+		fmt.Println("part2: ", Days[day-1].Part2(input))
+	}
 }
