@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 
+	"github.com/askreet/aoc2023/advent"
 	"github.com/askreet/aoc2023/day5/sparse_map"
 )
 
@@ -20,7 +21,7 @@ type Puzzle struct {
 func Parse(input io.Reader) *Puzzle {
 	var p Puzzle
 	scanner := bufio.NewScanner(input)
-	scanner.Split(ScanSections)
+	scanner.Split(advent.ScanSections)
 
 	haveReadHeader := false
 	for scanner.Scan() {
@@ -89,19 +90,4 @@ func (s Solution) Part2(input io.Reader) int {
 	}
 
 	return lowestLocation
-}
-
-func ScanSections(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	if atEOF && len(data) == 0 {
-		return 0, nil, nil
-	}
-	if i := bytes.Index(data, []byte{'\n', '\n'}); i >= 0 {
-		return i + 2, data[0:i], nil
-	}
-	if atEOF {
-		return len(data), data, nil
-	}
-
-	// Request more data.
-	return 0, nil, nil
 }

@@ -4,40 +4,26 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+
+	"github.com/askreet/aoc2023/advent"
 )
 
 type Solution struct{}
 
 func (s Solution) Solve(input io.Reader, RefFinder func(Map) Reflection) int {
 	scanner := bufio.NewScanner(input)
-	scanner.Split(bufio.ScanLines)
-	var buf []byte
+	scanner.Split(advent.ScanSections)
 
 	n := 1
 	sum := 0
 	for scanner.Scan() {
-		line := scanner.Bytes()
-		if len(line) == 0 {
-			newbuf := make([]byte, len(buf))
-			copy(newbuf, buf)
-			m := NewMap(newbuf)
+		m := NewMap(scanner.Bytes())
 
-			ref := RefFinder(m)
-			DisplayMap(n, m, ref)
-			sum += ref.Value()
-			buf = buf[0:0]
-			n++
-		} else {
-			buf = append(buf, line...)
-			buf = append(buf, '\n')
-		}
-	}
-	if len(buf) > 0 {
-		fmt.Println("processing map number", n)
-		m := NewMap(buf)
 		ref := RefFinder(m)
 		DisplayMap(n, m, ref)
 		sum += ref.Value()
+
+		n++
 	}
 
 	return sum
