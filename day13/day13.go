@@ -9,6 +9,7 @@ import (
 )
 
 type Solution struct{}
+type Map = advent.Map
 
 func (s Solution) Solve(input io.Reader, RefFinder func(Map) Reflection) int {
 	scanner := bufio.NewScanner(input)
@@ -17,7 +18,7 @@ func (s Solution) Solve(input io.Reader, RefFinder func(Map) Reflection) int {
 	n := 1
 	sum := 0
 	for scanner.Scan() {
-		m := NewMap(scanner.Bytes())
+		m := advent.NewMap(scanner.Bytes())
 
 		ref := RefFinder(m)
 		DisplayMap(n, m, ref)
@@ -33,8 +34,8 @@ func DisplayMap(id int, m Map, r Reflection) {
 	fmt.Printf("== Map %d ==\n", id)
 	if r.isHorizontal {
 		y := 0
-		for idx := 0; idx < len(m.bytes); idx++ {
-			if m.bytes[idx] == '\n' {
+		for idx := 0; idx < len(m.Bytes); idx++ {
+			if m.Bytes[idx] == '\n' {
 				if y == r.leftOrTop {
 					fmt.Print("v")
 				} else if y == r.leftOrTop+1 {
@@ -42,10 +43,10 @@ func DisplayMap(id int, m Map, r Reflection) {
 				}
 				y++
 			}
-			fmt.Print(string(m.bytes[idx]))
+			fmt.Print(string(m.Bytes[idx]))
 		}
 	} else {
-		for col := 0; col < m.width; col++ {
+		for col := 0; col < m.Width; col++ {
 			switch {
 			case col == r.leftOrTop:
 				fmt.Print(">")
@@ -58,7 +59,7 @@ func DisplayMap(id int, m Map, r Reflection) {
 			}
 		}
 		fmt.Println()
-		fmt.Println(string(m.bytes))
+		fmt.Println(string(m.Bytes))
 	}
 	fmt.Println("value:", r.Value())
 	fmt.Println()
@@ -67,32 +68,6 @@ func DisplayMap(id int, m Map, r Reflection) {
 type Reflection struct {
 	isHorizontal bool
 	leftOrTop    int
-}
-
-type Map struct {
-	bytes  []byte
-	width  int
-	height int
-}
-
-func NewMap(bs []byte) Map {
-	var m Map
-
-	var i = 0
-	for {
-		if bs[i] == '\n' {
-			m.bytes = bs
-			m.width = i
-			m.height = len(bs) / (m.width + 1)
-			return m
-		}
-		i++
-	}
-}
-
-func (m *Map) At(x, y int) byte {
-	idx := (y * (m.width + 1)) + x
-	return m.bytes[idx]
 }
 
 func (r Reflection) Value() int {
@@ -105,10 +80,10 @@ func (r Reflection) Value() int {
 
 func FindReflection(m Map) Reflection {
 	// Look for horizontal reflection at each y, except the last row.
-	for y := 0; y < m.height-1; y++ {
+	for y := 0; y < m.Height-1; y++ {
 		// How far from the mirror are we checking?
-		for yDelta := 0; y-yDelta >= 0 && y+yDelta+1 < m.height; yDelta++ {
-			for x := 0; x < m.width; x++ {
+		for yDelta := 0; y-yDelta >= 0 && y+yDelta+1 < m.Height; yDelta++ {
+			for x := 0; x < m.Width; x++ {
 				left := m.At(x, y-yDelta)
 				right := m.At(x, y+yDelta+1)
 				if left != right {
@@ -122,9 +97,9 @@ func FindReflection(m Map) Reflection {
 	}
 
 	// Look for vertical reflection at each x, except the last column.
-	for x := 0; x < m.width-1; x++ {
-		for xDelta := 0; x-xDelta >= 0 && x+xDelta+1 < m.width; xDelta++ {
-			for y := 0; y < m.height; y++ {
+	for x := 0; x < m.Width-1; x++ {
+		for xDelta := 0; x-xDelta >= 0 && x+xDelta+1 < m.Width; xDelta++ {
+			for y := 0; y < m.Height; y++ {
 				left := m.At(x-xDelta, y)
 				right := m.At(x+xDelta+1, y)
 				if left != right {
@@ -146,12 +121,12 @@ func FindDirtyReflection(m Map) Reflection {
 	var nDefects int = 0
 
 	// Look for horizontal reflection at each y, except the last row.
-	for y := 0; y < m.height-1; y++ {
+	for y := 0; y < m.Height-1; y++ {
 		nDefects = 0
 
 		// How far from the mirror are we checking?
-		for yDelta := 0; y-yDelta >= 0 && y+yDelta+1 < m.height; yDelta++ {
-			for x := 0; x < m.width; x++ {
+		for yDelta := 0; y-yDelta >= 0 && y+yDelta+1 < m.Height; yDelta++ {
+			for x := 0; x < m.Width; x++ {
 				top := m.At(x, y-yDelta)
 				bottom := m.At(x, y+yDelta+1)
 
@@ -171,11 +146,11 @@ func FindDirtyReflection(m Map) Reflection {
 	}
 
 	// Look for vertical reflection at each x, except the last column.
-	for x := 0; x < m.width-1; x++ {
+	for x := 0; x < m.Width-1; x++ {
 		nDefects = 0
 
-		for xDelta := 0; x-xDelta >= 0 && x+xDelta+1 < m.width; xDelta++ {
-			for y := 0; y < m.height; y++ {
+		for xDelta := 0; x-xDelta >= 0 && x+xDelta+1 < m.Width; xDelta++ {
+			for y := 0; y < m.Height; y++ {
 				left := m.At(x-xDelta, y)
 				right := m.At(x+xDelta+1, y)
 				if left != right {
