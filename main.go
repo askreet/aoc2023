@@ -12,6 +12,7 @@ import (
 	"github.com/askreet/aoc2023/day12"
 	"github.com/askreet/aoc2023/day13"
 	"github.com/askreet/aoc2023/day14"
+	"github.com/askreet/aoc2023/day15"
 	"github.com/askreet/aoc2023/day2"
 	"github.com/askreet/aoc2023/day3"
 	"github.com/askreet/aoc2023/day4"
@@ -37,6 +38,7 @@ var Days = []advent.Interface{
 	day12.Solution{},
 	day13.Solution{},
 	day14.Solution{},
+	day15.Solution{},
 }
 
 func main() {
