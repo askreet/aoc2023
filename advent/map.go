@@ -3,6 +3,9 @@ package advent
 import (
 	"bytes"
 	"fmt"
+	"image"
+	"image/color"
+	"image/png"
 	"os"
 )
 
@@ -100,4 +103,32 @@ func (m *Map) Copy() *Map {
 	newMap.Height = m.Height
 	newMap.Bytes = bytes.Clone(m.Bytes)
 	return &newMap
+}
+
+func (m *Map) Count(b byte) int {
+	return bytes.Count(m.Bytes, []byte{b})
+}
+
+func (m *Map) SavePNG(filename string, colormap map[byte]color.Color) {
+	img := image.NewRGBA(image.Rect(0, 0, m.Width, m.Height))
+
+	for y := 0; y < m.Height; y++ {
+		for x := 0; x < m.Width; x++ {
+			b := m.At(x, y)
+			if c, ok := colormap[b]; ok {
+				img.Set(x, y, c)
+			} else {
+				img.Set(x, y, color.Black)
+			}
+		}
+	}
+
+	f, err := os.Create(filename)
+	if err != nil {
+		panic(err)
+	}
+	err = png.Encode(f, img)
+	if err != nil {
+		panic(err)
+	}
 }
