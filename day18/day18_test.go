@@ -25,6 +25,9 @@ func TestSolution_Part2(t *testing.T) {
 	assert.Equal(t, 952408144115, result)
 }
 
+// XXX.XXX
+// X.X.X.X
+// X.XXX.X // <== off by one due to sparse list not collapsing
 func TestPart1_EmptySpaceRightOfWideLine(t *testing.T) {
 	input := bytes.NewBufferString(
 		"D 6 (#ffffff)\n" +

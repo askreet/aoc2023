@@ -1,9 +1,12 @@
 package day18
 
 import (
+	"cmp"
 	"fmt"
-	"image/color"
+	"image"
 	"io"
+	"math"
+	"slices"
 	"strconv"
 
 	"github.com/askreet/aoc2023/advent"
@@ -65,107 +68,272 @@ func (i *InstIter) Inst() *Inst {
 	return &i.next
 }
 
+type Polygon struct {
+	Lines []Line
+
+	topLeft     image.Point
+	bottomRight image.Point
+}
+
+func NewPolygon() Polygon {
+	return Polygon{
+		topLeft:     image.Pt(math.MaxInt, math.MaxInt),
+		bottomRight: image.Pt(math.MinInt, math.MinInt),
+	}
+}
+
+func (p *Polygon) Add(v Line) {
+	p.Lines = append(p.Lines, v)
+
+	// Because the polygon is tested for completeness, we only need to consider one point in the vertex to have
+	// considered all points by the end.
+	switch {
+	case v.End.X < p.topLeft.X:
+		p.topLeft.X = v.End.X
+	case v.End.Y < p.topLeft.Y:
+		p.topLeft.Y = v.End.Y
+	case v.End.X > p.bottomRight.X:
+		p.bottomRight.X = v.End.X
+	case v.End.Y > p.bottomRight.Y:
+		p.bottomRight.Y = v.End.Y
+	}
+}
+
+func (p *Polygon) IsComplete() bool {
+	start := p.Lines[0].Start
+	end := p.Lines[len(p.Lines)-1].End
+
+	return start == end
+}
+
+func (p *Polygon) Area() int {
+	sum := 0
+	for y := p.topLeft.Y; y <= p.bottomRight.Y; y++ {
+		lines := p.linesIntersectingY(y)
+		slices.SortFunc(lines, func(a, b Line) int { return cmp.Compare(a.MinX(), b.MinX()) })
+
+		//transitions, start := 0, 0
+		var transitionPoints advent.SparseRangeSet
+		var nonTransitionLines advent.SparseRangeSet
+		//inside := func() bool { return transitions%2 == 1 }
+		for _, intersectingLine := range lines {
+			// TODO: Skip vertical lines which overlap a horizontal transition line.
+			if p.isTransitionLine(&intersectingLine) {
+				transitionPoints.Insert(advent.IRange(intersectingLine.MinX(), intersectingLine.MaxX()))
+				//if inside() {
+				//	ranges.Insert(advent.IRange(start, intersectingLine.MaxX()))
+				//	transitions++
+				//} else {
+				//	start = intersectingLine.MinX()
+				//	transitions++
+				//}
+			} else {
+				nonTransitionLines.Insert(advent.IRange(intersectingLine.MinX(), intersectingLine.MaxX()))
+				//if inside() {
+				//	// Will be captured by surrounding transitions, nothing to do.
+				//} else {
+				//	ranges.Insert(advent.IRange(intersectingLine.MinX(), intersectingLine.MaxX()))
+				//}
+			}
+		}
+		var coveredAreas advent.SparseRangeSet
+		if len(transitionPoints.Ranges)%2 != 0 {
+			panic("uneven transition points")
+		}
+		for i := 0; i < len(transitionPoints.Ranges); i += 2 {
+			coveredAreas.Insert(advent.IRange(transitionPoints.Ranges[i].Start, transitionPoints.Ranges[i+1].End))
+		}
+		for _, r := range nonTransitionLines.Ranges {
+			coveredAreas.Insert(r)
+		}
+
+		sum += coveredAreas.Total()
+	}
+
+	return sum
+}
+
+func (p *Polygon) linesIntersectingY(y int) []Line {
+	var lines []Line
+
+	for _, l := range p.Lines {
+		if l.MinY() <= y && l.MaxY() >= y {
+			lines = append(lines, l)
+		}
+	}
+
+	return lines
+}
+
+const (
+	Up   = 0
+	Down = 1
+)
+
+func (p *Polygon) isTransitionLine(l *Line) bool {
+	if l.IsVertical() {
+		return true
+	}
+
+	leftAttachedLine := p.mustFindLineBy(
+		func(other Line) bool { return other.IsVertical() && other.HasPoint(l.LeftmostPoint()) })
+	rightAttachedLine := p.mustFindLineBy(
+		func(other Line) bool { return other.IsVertical() && other.HasPoint(l.RightmostPoint()) })
+
+	leftFacing := Down
+	if leftAttachedLine.OtherEnd(l.LeftmostPoint()).Y < l.LeftmostPoint().Y {
+		leftFacing = Up
+	}
+
+	rightFacing := Down
+	if rightAttachedLine.OtherEnd(l.RightmostPoint()).Y < l.RightmostPoint().Y {
+		rightFacing = Up
+	}
+
+	return leftFacing != rightFacing
+}
+
+func (p *Polygon) mustFindLineBy(f func(other Line) bool) *Line {
+	idx := slices.IndexFunc(p.Lines, f)
+	if idx == -1 {
+		panic("line not found in mustFindLineBy")
+	}
+
+	return &p.Lines[idx]
+}
+
+/*
+ XXX...XXX
+ X.X...X.X
+ X.XXXXX.X..XXXX
+ X.......XXXX..X
+
+ XXX
+ X.X.....XXXX
+ X.XXXXX.X..XXXX
+ X.....XXX.....X
+*/
+
+type Line struct {
+	Start image.Point
+	End   image.Point
+}
+
+func (l *Line) IsVertical() bool {
+	return l.Start.X == l.End.X
+}
+
+func (l *Line) IsHorizontal() bool {
+	return l.Start.Y == l.End.Y
+}
+
+func (l *Line) MinX() int {
+	if l.Start.X <= l.End.X {
+		return l.Start.X
+	} else {
+		return l.End.X
+	}
+}
+
+func (l *Line) MaxX() int {
+	if l.Start.X >= l.End.X {
+		return l.Start.X
+	} else {
+		return l.End.X
+	}
+}
+
+func (l *Line) MinY() int {
+	if l.Start.Y <= l.End.Y {
+		return l.Start.Y
+	} else {
+		return l.End.Y
+	}
+}
+
+func (l *Line) MaxY() int {
+	if l.Start.Y >= l.End.Y {
+		return l.Start.Y
+	} else {
+		return l.End.Y
+	}
+}
+
+func (l *Line) Width() int {
+	return l.MaxX() - l.MinX() + 1
+}
+
+func (l *Line) LeftmostPoint() image.Point {
+	if l.Start.X <= l.End.X {
+		return l.Start
+	} else {
+		return l.End
+	}
+}
+
+func (l *Line) RightmostPoint() image.Point {
+	if l.Start.X >= l.End.X {
+		return l.Start
+	} else {
+		return l.End
+	}
+}
+
+func (l *Line) HasPoint(point image.Point) bool {
+	return l.Start == point || l.End == point
+}
+
+func (l *Line) OtherEnd(from image.Point) image.Point {
+	if !l.HasPoint(from) {
+		panic("OtherEnd called with invalid point")
+	}
+	if l.Start == from {
+		return l.End
+	} else {
+		return l.Start
+	}
+}
+
 func (s Solution) Solve(input io.Reader, shouldFix bool) int {
 	iter := NewInstIter(input)
 
-	x, y := 0, 0
-	fmt.Println("staritng infmap")
-	var m advent.InfMap
+	var poly = NewPolygon()
+	current := image.Pt(0, 0)
 	for iter.Scan() {
 		inst := iter.Inst()
 		if shouldFix {
 			inst = inst.Fix()
 		}
+
+		var end image.Point
 		switch inst.Dir {
 		case "U":
-			for i := 0; i < inst.N; i++ {
-				y -= 1
-				m.Set(x, y, '#')
-			}
+			end = image.Pt(current.X, current.Y-inst.N)
 
 		case "D":
-			for i := 0; i < inst.N; i++ {
-				y += 1
-				m.Set(x, y, '#')
-			}
+			end = image.Pt(current.X, current.Y+inst.N)
 
 		case "L":
-			for i := 0; i < inst.N; i++ {
-				x -= 1
-				m.Set(x, y, '#')
-			}
+			end = image.Pt(current.X-inst.N, current.Y)
 
 		case "R":
-			for i := 0; i < inst.N; i++ {
-				x += 1
-				m.Set(x, y, '#')
-			}
+			end = image.Pt(current.X+inst.N, current.Y)
+
 		default:
 			panic("unknown dir")
 		}
-	}
-	fmt.Println("infmap ready")
-
-	fmt.Println("creating map")
-	nm := m.AsMap('.')
-	fmt.Println("map ready")
-	colors := map[byte]color.Color{
-		'#': color.RGBA{R: 0xFF, A: 0xFF},
-		'F': color.RGBA{R: 0x99, A: 0xFF},
-	}
-	nm.SavePNG("before.png", colors)
-	for y := 0; y < nm.Height; y++ {
-		var lastByte byte = '.'
-		c := 0
-		isWide := false
-		wideFromTop := false
-		for x := 0; x < nm.Width; x++ {
-			b := nm.At(x, y)
-			switch b {
-			case '#':
-				if lastByte == '.' {
-					isWide = false
-					c++
-				} else if isWide == false {
-					isWide = true
-					if nm.InBounds(x-1, y-1) && nm.At(x-1, y-1) == '#' {
-						wideFromTop = true
-					} else if nm.InBounds(x-1, y+1) && nm.At(x-1, y+1) == '#' {
-						wideFromTop = false
-					} else {
-						panic("could not determine wide pipe opening transition")
-					}
-				}
-				lastByte = b
-			case '.':
-				if lastByte == '#' && isWide {
-					// Determine if our twist is closing the loop or not.
-					if nm.InBounds(x-1, y-1) && nm.At(x-1, y-1) == '#' {
-						// Turned upward, transition again if we came from up.
-						if wideFromTop {
-							c++
-						}
-					} else if nm.InBounds(x-1, y+1) && nm.At(x-1, y+1) == '#' {
-						// Turned downward, transition again if we came from down.
-						if !wideFromTop {
-							c++
-						}
-					} else {
-						panic("could not determine wide pipe closing transition")
-					}
-				}
-				if c%2 == 1 {
-					nm.Set(x, y, 'F')
-				}
-				lastByte = b
-			default:
-				panic("unknown byte")
-			}
-		}
+		poly.Add(Line{
+			Start: current,
+			End:   end,
+		})
+		current = end
 	}
 
-	nm.SavePNG("after.png", colors)
-	return nm.Count('#') + nm.Count('F')
+	if !poly.IsComplete() {
+		panic("polygon is incomplete")
+	}
+
+	return poly.Area()
 }
 
 func (s Solution) Part1(input io.Reader) int {
