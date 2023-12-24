@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"slices"
 )
 
 const ExampleInput = "1,0,1~1,2,1\n0,0,2~2,0,2\n0,2,3~2,2,3\n0,0,4~0,2,4\n2,0,5~2,2,5\n0,1,6~2,1,6\n1,1,8~1,1,9\n"
@@ -39,95 +38,20 @@ func (s Shape) Overlaps(b Shape) bool {
 	return overlapX && overlapY && overlapZ
 }
 
-func (s *Shape) EachLoc(fn func(x, y, z int)) {
+func (s *Shape) EachLoc(fn func(x, y, z int) bool) {
 	for x := min(s.X1, s.X2); x <= max(s.X1, s.X2); x++ {
-		for y := min(s.Y1, s.Y2); y <= max(s.Y1, s.Y2); x++ {
-			for z := min(s.Z1, s.Z2); z <= max(s.Z1, s.Z2); x++ {
-				fn(x, y, z)
-			}
-		}
-	}
-}
-
-type Tower []Shape
-
-// Settle will generate a new tower where all pieces have moved far down as possible without colliding with another piece.
-func (t Tower) Settle() Tower {
-	var newTower = make(Tower, len(t))
-	copy(newTower, t)
-
-	for newTower.SettleStep() > 0 {
-	}
-
-	return newTower
-}
-
-// Count the number of bricks that will settle, total.
-func (t *Tower) SettleCount() int {
-	for i := range *t {
-		(*t)[i].bit = false
-	}
-
-	for {
-		if t.SettleStep() == 0 {
-			break
-		}
-	}
-
-	sum := 0
-
-	for i := range *t {
-		if (*t)[i].bit {
-			sum++
-		}
-	}
-
-	return sum
-}
-
-// SettleStep executes a single settle action by mutating the current Tower. It returns the number of changed shapes.
-func (t *Tower) SettleStep() int {
-	numMoved := 0
-
-	var lastSuccessfulLocation Shape
-	var candidateLocation Shape
-	for this := range *t {
-		if (*t)[this].MinZ() > 0 {
-			lastSuccessfulLocation = (*t)[this]
-			for {
-				candidateLocation = lastSuccessfulLocation.Drop()
-				collides := false
-				for other := range *t {
-					if this == other {
-						continue
-					}
-
-					if candidateLocation.Overlaps((*t)[other]) {
-						collides = true
-						break
-					}
-				}
-				if collides || candidateLocation.MinZ() == 0 {
-					(*t)[this] = lastSuccessfulLocation
-					break
-				} else {
-					lastSuccessfulLocation = candidateLocation
-					numMoved++
+		for y := min(s.Y1, s.Y2); y <= max(s.Y1, s.Y2); y++ {
+			for z := min(s.Z1, s.Z2); z <= max(s.Z1, s.Z2); z++ {
+				if !fn(x, y, z) {
+					// Early abort.
+					return
 				}
 			}
 		}
 	}
-
-	return numMoved
 }
 
-func (t *Tower) Clone() Tower {
-	var n Tower = make(Tower, len(*t))
-	copy(n, *t)
-	return n
-}
-
-func Parse(reader io.Reader) Tower {
+func Parse(reader io.Reader) *Tower {
 	var shapes []Shape
 
 	scanner := bufio.NewScanner(reader)
@@ -147,20 +71,27 @@ func Parse(reader io.Reader) Tower {
 		shapes = append(shapes, shape)
 	}
 
-	return shapes
+	var tower Tower
+	for i := range shapes {
+		tower.Add(shapes[i])
+	}
+
+	return &tower
 }
 
 func (s Solution) Part1(input io.Reader) int {
-	shapes := Parse(input)
-	shapes = shapes.Settle()
+	tower := Parse(input).Settle()
 
 	deletable := 0
 
-	for i := range shapes {
-		this := shapes.Clone()
-		this = slices.Delete(this, i, i+1)
+	for i := range tower.shapes {
+		this := tower.Clone()
+		this.DeleteIndex(i)
 		if this.SettleStep() == 0 {
 			deletable++
+			if this.SettleStep() != 0 {
+				fmt.Println("tower", i, "settled differently on 2nd attempt")
+			}
 		}
 	}
 
@@ -168,14 +99,13 @@ func (s Solution) Part1(input io.Reader) int {
 }
 
 func (s Solution) Part2(input io.Reader) int {
-	shapes := Parse(input)
-	shapes = shapes.Settle()
+	tower := Parse(input).Settle()
 
 	sum := 0
 
-	for i := range shapes {
-		this := shapes.Clone()
-		this = slices.Delete(this, i, i+1)
+	for i := range tower.shapes {
+		this := tower.Clone()
+		this.DeleteIndex(i)
 		sum += this.SettleCount()
 	}
 

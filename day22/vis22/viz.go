@@ -55,7 +55,7 @@ func main() {
 	a.Subscribe(window.OnWindowSize, onResize)
 	onResize("", nil)
 
-	var shapes day22.Tower
+	var tower *day22.Tower
 	var shapeNodes []*core.Node
 	removeAllShapes := func() {
 		for _, n := range shapeNodes {
@@ -70,10 +70,10 @@ func main() {
 			{1, 1, 1},
 		}
 
-		if len(shapeNodes) != len(shapes) {
-			shapeNodes = make([]*core.Node, len(shapes))
+		if len(shapeNodes) != tower.Len() {
+			shapeNodes = make([]*core.Node, tower.Len())
 		}
-		for i, shape := range shapes {
+		for i, shape := range tower.Shapes() {
 			color := colors[i%len(colors)]
 			node := NodeFor(shape, color)
 			shapeNodes[i] = node
@@ -83,7 +83,7 @@ func main() {
 
 	var anims []*animation.Animation
 
-	settleChan := make(chan day22.Tower, 1)
+	settleChan := make(chan *day22.Tower, 1)
 
 	a.Subscribe(window.OnKeyDown, func(s string, ev any) {
 		keyEvent := ev.(*window.KeyEvent)
@@ -91,7 +91,7 @@ func main() {
 		// Load (E)xample
 		if keyEvent.Key == window.KeyE {
 			removeAllShapes()
-			shapes = day22.Parse(bytes.NewBufferString(day22.ExampleInput))
+			tower = day22.Parse(bytes.NewBufferString(day22.ExampleInput))
 			addAllShapes()
 		}
 
@@ -104,7 +104,7 @@ func main() {
 			}
 
 			removeAllShapes()
-			shapes = day22.Parse(bytes.NewBuffer(data))
+			tower = day22.Parse(bytes.NewBuffer(data))
 			addAllShapes()
 		}
 
@@ -113,18 +113,18 @@ func main() {
 			// Clear any active animations.
 			anims = anims[0:0]
 
-			if len(shapes) == 0 {
+			if tower.Len() == 0 {
 				return
 			}
 
 			if keyEvent.Mods&window.ModShift > 0 {
 				go func() {
-					settleChan <- shapes.Settle()
+					settleChan <- tower.Settle()
 				}()
 
 			} else {
 				removeAllShapes()
-				shapes.SettleStep()
+				tower.SettleStep()
 				addAllShapes()
 			}
 
@@ -132,8 +132,8 @@ func main() {
 	})
 
 	a.Subscribe("SettleComputationComplete", func(s string, i interface{}) {
-		// I feel bad.
-		newShapes := *(i.(*day22.Tower))
+		newShapes := i.(*day22.Tower).Shapes()
+		shapes := tower.Shapes()
 
 		for i := range shapes {
 			if shapes[i] != newShapes[i] {
@@ -169,7 +169,7 @@ func main() {
 			}
 		}
 	})
-	// Add shapes to the scene.
+	// Add tower to the scene.
 
 	// Create and add a button to the scene
 	//btn := gui.NewButton("Make Red")
@@ -204,7 +204,7 @@ func main() {
 
 		if len(settleChan) == 1 {
 			newShapes := <-settleChan
-			a.Dispatch("SettleComputationComplete", &newShapes)
+			a.Dispatch("SettleComputationComplete", newShapes)
 		}
 
 		renderer.Render(scene, cam)

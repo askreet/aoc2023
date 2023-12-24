@@ -16,6 +16,14 @@ func TestSolution_Part1(t *testing.T) {
 	assert.Equal(t, 5, result)
 }
 
+func TestSolution_Part1_Input(t *testing.T) {
+	input, _ := os.ReadFile("../in/day22.txt")
+
+	result := Solution{}.Part1(bytes.NewBuffer(input))
+
+	assert.Equal(t, 517, result)
+}
+
 func Benchmark_Parse(b *testing.B) {
 	input := bytes.NewBufferString(ExampleInput)
 
